@@ -26,6 +26,7 @@ contract CryptoLottery {
   event DistributePrize(address winner, uint256 amount);
   event SetTicketPrice(uint256 ticketPrice);
   event SetRoyaltiesPercent(uint256 newRoyaltiesPercent);
+  event SetRoyaltiesAddress(address newRoyaltiesAddress);
   event SetTokenAddress(address newTokenAddress);
   event SetMinimumPlayers(uint256 newMinimumPlayers);
   event SetMinimumDrawTime(uint256 newMinimumDrawTime);
@@ -59,7 +60,7 @@ contract CryptoLottery {
 
   function getWinner() external onlyOwner returns(address) {
     if (players.length < minimumPlayers) revert minimumPlayersNotReach();
-    if (lastDrawTime + minimumDrawTime < block.timestamp) revert drawTimeNotfinish();
+    if (block.timestamp < lastDrawTime + minimumDrawTime) revert drawTimeNotfinish();
     uint256 winnerId = _computeRandom() % players.length;
     address winnerAddy = players[winnerId];
     winner = winnerAddy;
@@ -136,6 +137,11 @@ contract CryptoLottery {
     if (_royaltiesPercent > 1000) revert royaltiesExceedTenPercent();
     royaltiesPercent = _royaltiesPercent;
     emit SetRoyaltiesPercent(_royaltiesPercent);
+  }
+
+  function setRoyaltiesAddress(address _royaltiesAddress) external onlyOwner {
+    royaltiesAddress = _royaltiesAddress;
+    emit SetRoyaltiesAddress(_royaltiesAddress);
   }
 
   function transferOwnership(address _owner) external onlyOwner {
