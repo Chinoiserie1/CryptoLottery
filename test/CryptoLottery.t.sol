@@ -80,6 +80,30 @@ contract CryptoLotteryTest is Test {
     );
     vm.stopPrank();
     vm.startPrank(owner);
+    uint256 lastDrawTimestamp = cryptoLottery.lastDrawTime();
+    vm.warp(lastDrawTimestamp + 1 hours);
     cryptoLottery.getWinner();
+  }
+
+  function testDraw() public {
+    vm.stopPrank();
+    vm.startPrank(user1);
+    require(cryptoLottery.getPlayers().length == 0, "players not set correctly");
+    IERC20(address(testERC20)).approve(address(cryptoLottery), ticketPrice);
+    cryptoLottery.buyTickets(1);
+    vm.stopPrank();
+    vm.startPrank(user2);
+    IERC20(address(testERC20)).approve(address(cryptoLottery), ticketPrice);
+    cryptoLottery.buyTickets(1);
+    require(
+      IERC20(address(testERC20)).balanceOf(address(cryptoLottery)) == ticketPrice * 2,
+      "transfer erc20 failed"
+    );
+    vm.stopPrank();
+    vm.startPrank(owner);
+    uint256 lastDrawTimestamp = cryptoLottery.lastDrawTime();
+    vm.warp(lastDrawTimestamp + 1 hours);
+    address winner = cryptoLottery.getWinner();
+    cryptoLottery.distributePrize();
   }
 }
