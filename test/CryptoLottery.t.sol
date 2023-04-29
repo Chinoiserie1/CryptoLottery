@@ -19,6 +19,8 @@ contract CryptoLotteryTest is Test {
   address internal user1;
   uint256 internal user2PrivateKey;
   address internal user2;
+  uint256 internal user3PrivateKey;
+  address internal user3;
   uint256 internal royaltiesPrivateKey;
   address internal royaltiesAddress;
 
@@ -31,6 +33,8 @@ contract CryptoLotteryTest is Test {
     user1 = vm.addr(user1PrivateKey);
     user2PrivateKey = 0xFED;
     user2 = vm.addr(user2PrivateKey);
+    user3PrivateKey = 0xAD1;
+    user3 = vm.addr(user3PrivateKey);
     royaltiesPrivateKey = 0xD0E;
     royaltiesAddress = vm.addr(royaltiesPrivateKey);
     vm.startPrank(owner);
@@ -42,6 +46,7 @@ contract CryptoLotteryTest is Test {
     cryptoLottery.setRoyaltiesAddress(royaltiesAddress);
     IERC20(address(testERC20)).transfer(user1, 10 ether);
     IERC20(address(testERC20)).transfer(user2, 10 ether);
+    IERC20(address(testERC20)).transfer(user3, 10 ether);
   }
 
   function testVariablesAfterDeployement() public view {
@@ -104,6 +109,40 @@ contract CryptoLotteryTest is Test {
     uint256 lastDrawTimestamp = cryptoLottery.lastDrawTime();
     vm.warp(lastDrawTimestamp + 1 hours);
     address winner = cryptoLottery.getWinner();
+    uint256 prizePool = cryptoLottery.getPrizePool();
+    uint256 balanceWinnerBefore = IERC20(address(testERC20)).balanceOf(winner);
     cryptoLottery.distributePrize();
+    uint256 balanceWinnerAfter = IERC20(address(testERC20)).balanceOf(winner);
+    require(balanceWinnerAfter == balanceWinnerBefore + prizePool, "fail trasnfer amount to winner");
+  }
+
+  function testDrawRestartCorrectlyWithFirstBidder() public {
+    vm.stopPrank();
+    vm.startPrank(user1);
+    require(cryptoLottery.getPlayers().length == 0, "players not set correctly");
+    IERC20(address(testERC20)).approve(address(cryptoLottery), ticketPrice);
+    cryptoLottery.buyTickets(1);
+    vm.stopPrank();
+    vm.startPrank(user2);
+    IERC20(address(testERC20)).approve(address(cryptoLottery), ticketPrice);
+    cryptoLottery.buyTickets(1);
+    require(
+      IERC20(address(testERC20)).balanceOf(address(cryptoLottery)) == ticketPrice * 2,
+      "transfer erc20 failed"
+    );
+    vm.stopPrank();
+    vm.startPrank(owner);
+    uint256 lastDrawTimestamp = cryptoLottery.lastDrawTime();
+    vm.warp(lastDrawTimestamp + 1 hours);
+    address winner = cryptoLottery.getWinner();
+    uint256 prizePool = cryptoLottery.getPrizePool();
+    uint256 balanceWinnerBefore = IERC20(address(testERC20)).balanceOf(winner);
+    vm.stopPrank();
+    vm.startPrank(user3);
+    IERC20(address(testERC20)).approve(address(cryptoLottery), ticketPrice);
+    cryptoLottery.buyTickets(1);
+    uint256 balanceWinnerAfter = IERC20(address(testERC20)).balanceOf(winner);
+    require(balanceWinnerAfter == balanceWinnerBefore + prizePool, "fail trasnfer amount to winner");
+    prizePool = cryptoLottery.getPrizePool();
   }
 }

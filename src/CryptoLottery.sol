@@ -23,7 +23,7 @@ contract CryptoLottery {
   event BuyTickets(address buyer, uint256 amount);
   event TransferOwnership(address newOwner);
   event Winner(address winner);
-  event DistributePrize(address winner, uint256 amount);
+  event DistributePrize(uint256 drawId, address winner, uint256 amount);
   event SetTicketPrice(uint256 ticketPrice);
   event SetRoyaltiesPercent(uint256 newRoyaltiesPercent);
   event SetRoyaltiesAddress(address newRoyaltiesAddress);
@@ -82,12 +82,12 @@ contract CryptoLottery {
     if (success == false) revert transferFailed();
     success = IERC20(tokenAddress).transfer(winner, winnerAmount);
     if (success == false) revert transferFailed();
-    winner = address(0);
     delete players;
     lastDrawTime = block.timestamp;
     phase = Phase.start;
+    emit DistributePrize(drawId, winner, winnerAmount);
     unchecked { ++drawId; }
-    emit DistributePrize(winner, winnerAmount);
+    winner = address(0);
   }
 
   function _computeRandom() internal view returns(uint256) {
@@ -110,6 +110,12 @@ contract CryptoLottery {
 
   function getPlayers() public view returns(address[] memory) {
     return players;
+  }
+
+  function getPrizePool() public view returns(uint256) {
+    uint256 balance = IERC20(tokenAddress).balanceOf(address(this));
+    uint256 fees = balance * royaltiesPercent / 10000;
+    return (balance - fees);
   }
 
   function setTicketPrice(uint256 _ticketPrice) external onlyOwner {
