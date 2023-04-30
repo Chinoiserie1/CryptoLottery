@@ -1,13 +1,22 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.13;
+pragma solidity ^0.8.19;
 
 import { TestERC20 } from "./token/TestERC20.sol";
 import { CryptoLottery } from "../src/CryptoLottery.sol";
 
-// import { IERC20 } from "../src/Interfaces/ICryptoLottery.sol";
+// import "../src/Interfaces/ICryptoLottery.sol";
 import "lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 
 import "forge-std/Test.sol";
+
+error callerNotOwner();
+error numberTicketZero();
+error transferFailed();
+error minimumPlayersNotReach();
+error minimumPlayersMustGreaterThan2();
+error noWinner();
+error drawTimeNotfinish();
+error royaltiesExceedTenPercent();
 
 contract CryptoLotteryTest is Test {
   CryptoLottery public cryptoLottery;
@@ -144,5 +153,22 @@ contract CryptoLotteryTest is Test {
     uint256 balanceWinnerAfter = IERC20(address(testERC20)).balanceOf(winner);
     require(balanceWinnerAfter == balanceWinnerBefore + prizePool, "fail trasnfer amount to winner");
     prizePool = cryptoLottery.getPrizePool();
+  }
+
+  function testOnlyOwner() public {
+    vm.stopPrank();
+    vm.startPrank(user1);
+    vm.expectRevert(callerNotOwner.selector);
+    cryptoLottery.setTicketPrice(100);
+    vm.expectRevert(callerNotOwner.selector);
+    cryptoLottery.setMinimumPlayers(3);
+    vm.expectRevert(callerNotOwner.selector);
+    cryptoLottery.setMinimumDrawTime(2 hours);
+    vm.expectRevert(callerNotOwner.selector);
+    cryptoLottery.setRoyaltiesAddress(user1);
+    vm.expectRevert(callerNotOwner.selector);
+    cryptoLottery.setRoyaltiesPercent(0);
+    vm.expectRevert(callerNotOwner.selector);
+    cryptoLottery.setTokenAddress(address(0));
   }
 }
